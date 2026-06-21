@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CI quality-gate pipeline (`.github/workflows/ci-quality-gates.yml`): pytest
+  across a 3.10/3.11/3.12 matrix with coverage, a SonarCloud quality gate, and
+  an sdist/wheel build, mirroring the consumer repos (Muninn, Heimdall,
+  wigle-to-wdgwars). No Snyk stage — gungnir has no runtime dependencies, so
+  there is nothing to software-composition-scan.
+- `sonar-project.properties`, `requirements-dev.txt`, `CI.md`, and pytest +
+  coverage config (with a 75% regression floor; baseline ~78%) in
+  `pyproject.toml`.
+- `SECURITY-FINDINGS.md`: a review against the SonarCloud SAST finding classes
+  found nothing to remediate (gungnir is a pure-stdlib library — no CLI argv,
+  subprocess, scheduler, SQLite, or temp-dir use). The key-file safety the
+  feeders rely on (symlink refusal + mode 600) lives here and is already
+  covered by `tests/test_keys.py`.
+
+Tooling/CI only — no change to the library API, so no version bump.
+
 ## [0.1.3] - structured HTTP 413 handling for the wdgwars.pl 15 MB upload cap
 
 LOCOSP rolled out a temporary 15 MB body cap on every wdgwars.pl upload

@@ -32,3 +32,24 @@ include = ["gungnir*"]
 [tool.setuptools.package-data]
 # PEP 561 — ship the inline type hints to consumers using mypy/pyright.
 gungnir = ["py.typed"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.coverage.run]
+branch = true
+source = ["gungnir"]
+omit = [
+    "tests/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+# Regression floor, set just below the measured baseline (about 78 percent
+# line+branch coverage on the gungnir package as of this commit). The build
+# fails if coverage drops below this. Raise it as tests are added; it is a
+# ratchet, not a target. The real quality enforcement is the SonarCloud
+# Clean-as-You-Code gate on new code (see sonar-project.properties).
+fail_under = 75

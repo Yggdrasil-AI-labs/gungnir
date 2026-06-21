@@ -1,0 +1,110 @@
+name: ci-quality-gates
+
+# Gated pipeline for the gungnir library: test (matrix) + coverage ->
+# SonarCloud quality gate -> build sdist/wheel. Mirrors the pipeline shipped
+# in the consumer repos (adsb-to-wdgwars, wigle-to-wdgwars, meshcore-to-wdgwars),
+# adapted for a dependency-free library:
+#   * the test stage runs a 3.10/3.11/3.12 matrix (this lib is consumed on all
+#     three), with coverage produced on the 3.12 leg;
+#   * there is no Snyk stage — gungnir has no runtime dependencies, so there is
+#     no software-composition surface to scan. Add one (see the sibling repos)
+#     the day a runtime dependency is pinned in pyproject.toml;
+#   * the build stage produces an sdist + wheel rather than a single-file
+#     tarball, because gungnir is an installable package.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Stage 1: test across the supported Python matrix; coverage on 3.12.
+  test:
+    name: Test and coverage
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so SonarCloud can attribute new code and blame.
+          fetch-depth: 0
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e . -r requirements-dev.txt
+
+      - name: Run pytest with coverage
+        run: pytest --cov=gungnir --cov-report=xml --cov-report=term-missing --cov-branch
+
+      - name: Upload coverage report
+        # One coverage.xml is enough for the gate; take it from the 3.12 leg.
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 7
+
+  # Stage 2: SonarCloud static analysis + quality gate (reads coverage.xml).
+  sonarcloud:
+    name: SonarCloud quality gate
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-xml
+
+      - name: SonarCloud scan and quality gate
+        # sonar.qualitygate.wait=true (in sonar-project.properties) makes this
+        # step fail the job when the gate fails, instead of only reporting it.
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          # EU region instance. US region would be https://sonarqube.us.
+          SONAR_HOST_URL: https://sonarcloud.io
+
+  # Stage 3: build the distribution. Only runs if the gate passed.
+  build:
+    name: Build sdist and wheel
+    needs: [sonarcloud]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Upload distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: gungnir-dist
+          path: dist/*
+          retention-days: 14
