@@ -1,5 +1,11 @@
 # gungnir
 
+<p align="center">
+  <a href="https://github.com/Yggdrasil-AI-labs/gungnir/actions/workflows/ci-quality-gates.yml"><img alt="CI" src="https://github.com/Yggdrasil-AI-labs/gungnir/actions/workflows/ci-quality-gates.yml/badge.svg"></a>
+  <a href="https://sonarcloud.io/dashboard?id=Yggdrasil-AI-labs_gungnir"><img alt="Quality gate" src="https://sonarcloud.io/api/project_badges/measure?project=Yggdrasil-AI-labs_gungnir&metric=alert_status"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-b08850.svg"></a>
+</p>
+
 > *Odin's spear. Always hits its target.*
 
 Shared transport client for the [WDGoWars](https://wdgwars.pl) (wdgwars.pl)
@@ -11,10 +17,10 @@ where the server returns `HTTP 200 ok:true` with zero on every counter.
 
 Sibling repos in the WDGoWars feeder family:
 
-- [Muninn](https://github.com/HiroAlleyCat/adsb-to-wdgwars) — ADS-B feeder
-- [Heimdall](https://github.com/HiroAlleyCat/meshcore-to-wdgwars) — MeshCore LoRa feeder
-- [wigle-to-wdgwars](https://github.com/HiroAlleyCat/wigle-to-wdgwars) — WiGLE Wi-Fi/BLE feeder
-- [wdgwars-api-tester](https://github.com/HiroAlleyCat/wdgwars-api-tester) — API surface probe
+- [Muninn](https://github.com/Yggdrasil-AI-labs/adsb-to-wdgwars) — ADS-B feeder
+- [Heimdall](https://github.com/Yggdrasil-AI-labs/meshcore-to-wdgwars) — MeshCore LoRa feeder
+- [wigle-to-wdgwars](https://github.com/Yggdrasil-AI-labs/wigle-to-wdgwars) — WiGLE Wi-Fi/BLE feeder
+- [wdgwars-api-tester](https://github.com/Yggdrasil-AI-labs/wdgwars-api-tester) — API surface probe
 
 ## Quick start
 
