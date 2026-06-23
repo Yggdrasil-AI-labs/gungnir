@@ -57,8 +57,7 @@ class Client:
 
 Norse mythology — Odin's spear, said to always hit its mark when thrown.
 Fits a delivery client whose job is reliable, signed delivery to wdgwars.pl.
-Continues the lab-wide Norse naming convention (Muninn, Heimdall, Huginn,
-Forseti, Bifröst).
+Continues the lab-wide Norse naming convention (alongside Muninn and Heimdall).
 
 ## License
 
