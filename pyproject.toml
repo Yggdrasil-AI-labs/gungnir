@@ -22,8 +22,8 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/HiroAlleyCat/gungnir"
-Repository = "https://github.com/HiroAlleyCat/gungnir"
+Homepage = "https://github.com/Yggdrasil-AI-labs/gungnir"
+Repository = "https://github.com/Yggdrasil-AI-labs/gungnir"
 
 [tool.setuptools.packages.find]
 where = ["."]

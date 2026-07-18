@@ -45,11 +45,11 @@ behaviors; duplicating them under a `test_security.py` would add noise, not
 coverage. The CI quality gate now runs that suite with coverage on every
 change.
 
-## A note for when SonarCloud is enabled
+## SonarCloud hotspot disposition
 
-This repo is not yet imported into SonarCloud. Once it is (and `SONAR_TOKEN` is
-added — see [CI.md](CI.md)), the scanner may raise **security hotspots**
-(review-required, not vulnerabilities) on the `os.open` key-file write or the
-`hmac`/`ssl` usage. The disposition above is the rationale to mark those
-*Safe*: the key file is created `0o600` behind a symlink check, and the crypto
-uses stdlib primitives as intended.
+SonarCloud has been wired since 2026-07-02 (hard gate,
+`sonar.qualitygate.wait=true` — see [CI.md](CI.md)). If the scanner raises
+**security hotspots** (review-required, not vulnerabilities) on the `os.open`
+key-file write or the `hmac`/`ssl` usage, the disposition above is the
+rationale to mark those *Safe*: the key file is created `0o600` behind a
+symlink check, and the crypto uses stdlib primitives as intended.

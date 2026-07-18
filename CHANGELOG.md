@@ -22,8 +22,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   subprocess, scheduler, SQLite, or temp-dir use). The key-file safety the
   feeders rely on (symlink refusal + mode 600) lives here and is already
   covered by `tests/test_keys.py`.
+- `SECURITY.md` (2026-07-18): vulnerability-reporting policy and an outbound
+  footprint / key-handling summary, matching the family convention — gungnir
+  was the only family repo without one.
+- `tests/test_cooldown.py` + `tests/test_hwm.py` (2026-07-18): direct file-I/O
+  tests for the two modules the transport suite only ever exercised through
+  mocks — the 900 s sleep cap, record/clear round trips, corrupt-state
+  no-ops, the counters extraction contract, and read()'s None-on-missing.
+  Coverage baseline moves ~78% → ~87%.
 
-Tooling/CI only — no change to the library API, so no version bump.
+### Fixed
+
+- Org-migration metadata (2026-07-18): `pyproject.toml` `[project.urls]` and
+  the CHANGELOG link definitions now point at `Yggdrasil-AI-labs` (they still
+  pointed at the pre-migration `HiroAlleyCat` owner); link definitions for
+  0.1.1/0.1.2/0.1.3 added and the `[Unreleased]` compare range unstuck from
+  `v0.1.0...HEAD`. `SECURITY-FINDINGS.md` no longer claims the repo "is not
+  yet imported into SonarCloud" (wired since 2026-07-02).
+
+Tooling/CI/docs only — no change to the library API, so no version bump.
 
 ## [0.1.3] - structured HTTP 413 handling for the wdgwars.pl 15 MB upload cap
 
@@ -235,5 +252,8 @@ repo's commit history.
   `~/.config/muninn/api.key` (POSIX) and `%APPDATA%/muninn/api.key`
   (Windows) are read/written unchanged.
 
-[Unreleased]: https://github.com/HiroAlleyCat/gungnir/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/HiroAlleyCat/gungnir/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/Yggdrasil-AI-labs/gungnir/releases/tag/v0.1.0
