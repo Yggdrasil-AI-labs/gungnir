@@ -8,14 +8,14 @@
 
 > *Odin's spear. Always hits its target.*
 
-Shared transport client for the [WDGoWars](https://wdgwars.pl) (wdgwars.pl)
+Shared transport client for the [WDGWars](https://wdgwars.pl) (wdgwars.pl)
 ecosystem of feeders. Speaks the HMAC-signed `/api/upload/` envelope, handles
 cooldown persistence, retries 429s, and detects the silent-drop failure mode
 where the server returns `HTTP 200 ok:true` with zero on every counter.
 
 ## Family
 
-Sibling repos in the WDGoWars feeder family:
+Sibling repos in the WDGWars feeder family:
 
 - [Muninn](https://github.com/Yggdrasil-AI-labs/adsb-to-wdgwars) — ADS-B feeder
 - [Heimdall](https://github.com/Yggdrasil-AI-labs/meshcore-to-wdgwars) — MeshCore LoRa feeder

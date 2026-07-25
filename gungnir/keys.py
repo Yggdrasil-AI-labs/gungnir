@@ -1,4 +1,4 @@
-"""API-key resolution, persistence, and redaction for the WDGoWars feeders.
+"""API-key resolution, persistence, and redaction for the WDGWars feeders.
 
 Key lookup precedence (highest first):
     1. cli_key argument (typically populated from --key)

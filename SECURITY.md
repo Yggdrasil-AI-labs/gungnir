@@ -1,15 +1,15 @@
 # Security Notes
 
-gungnir is the shared HMAC transport **library** for the WDGoWars feeder
+gungnir is the shared HMAC transport **library** for the WDGWars feeder
 family (Muninn / adsb-to-wdgwars, wigle-to-wdgwars, wdgwars-api-tester).
 It has no CLI, parses no arguments, and runs no subprocesses.
 
 ## What this library does
 
 - Builds HMAC-SHA256-signed JSON envelopes and POSTs them to the
-  WDGoWars endpoint the consuming feeder configures
+  WDGWars endpoint the consuming feeder configures
   (`https://wdgwars.pl/endpoint/upload/` by default).
-- Resolves, saves, and redacts the WDGoWars API key on the consumer's
+- Resolves, saves, and redacts the WDGWars API key on the consumer's
   behalf (see below).
 - Persists two small state files per tool in the per-tool config dir:
   `cooldown.json` (429 backpressure) and `hwm.json` (last successful

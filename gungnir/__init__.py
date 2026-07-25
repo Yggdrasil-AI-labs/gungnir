@@ -1,4 +1,4 @@
-"""gungnir — shared transport client for the WDGoWars (wdgwars.pl) feeders.
+"""gungnir — shared transport client for the WDGWars (wdgwars.pl) feeders.
 
     *Odin's spear. Always hits its target.*
 
