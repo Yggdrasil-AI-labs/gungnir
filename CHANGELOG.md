@@ -12,22 +12,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI quality-gate pipeline (`.github/workflows/ci-quality-gates.yml`): pytest
   across a 3.10/3.11/3.12 matrix with coverage, a SonarCloud quality gate, and
   an sdist/wheel build, mirroring the consumer repos (Muninn, Heimdall,
-  wigle-to-wdgwars). No Snyk stage — gungnir has no runtime dependencies, so
+  wigle-to-wdgwars). No Snyk stage. Gungnir has no runtime dependencies, so
   there is nothing to software-composition-scan.
 - `sonar-project.properties`, `requirements-dev.txt`, `CI.md`, and pytest +
   coverage config (with a 75% regression floor; baseline ~78%) in
   `pyproject.toml`.
 - `SECURITY-FINDINGS.md`: a review against the SonarCloud SAST finding classes
-  found nothing to remediate (gungnir is a pure-stdlib library — no CLI argv,
+  found nothing to remediate (gungnir is a pure-stdlib library, no CLI argv,
   subprocess, scheduler, SQLite, or temp-dir use). The key-file safety the
   feeders rely on (symlink refusal + mode 600) lives here and is already
   covered by `tests/test_keys.py`.
 - `SECURITY.md` (2026-07-18): vulnerability-reporting policy and an outbound
-  footprint / key-handling summary, matching the family convention — gungnir
+  footprint / key-handling summary, matching the family convention, gungnir
   was the only family repo without one.
 - `tests/test_cooldown.py` + `tests/test_hwm.py` (2026-07-18): direct file-I/O
   tests for the two modules the transport suite only ever exercised through
-  mocks — the 900 s sleep cap, record/clear round trips, corrupt-state
+  mocks, the 900 s sleep cap, record/clear round trips, corrupt-state
   no-ops, the counters extraction contract, and read()'s None-on-missing.
   Coverage baseline moves ~78% → ~87%.
 
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `v0.1.0...HEAD`. `SECURITY-FINDINGS.md` no longer claims the repo "is not
   yet imported into SonarCloud" (wired since 2026-07-02).
 
-Tooling/CI/docs only — no change to the library API, so no version bump.
+Tooling/CI/docs only, no change to the library API, so no version bump.
 
 ## [0.1.3] - structured HTTP 413 handling for the wdgwars.pl 15 MB upload cap
 
@@ -79,7 +79,7 @@ Heimdall mesh-node bursts) should treat a 413 as "shrink the batch
 and call again". For most feeders this never triggers: aircraft and
 mesh snapshots are kilobytes per cycle.
 
-## [0.1.2] — default upload URL bypasses Cloudflare L7 rate-limit
+## [0.1.2] - default upload URL bypasses Cloudflare L7 rate-limit
 
 WDGoWars portal sits behind Cloudflare. Free tier cannot skip the
 `ddos_l7` phase via API. CF's automatic L7 DDoS protection per-IP-rate-
@@ -99,7 +99,7 @@ pattern matching so the request reaches the origin.
   `https://wdgwars.pl/endpoint/upload/`. Every feeder using gungnir's
   default (Muninn since v2.0.5, wigle-to-wdgwars on next bump,
   future Heimdall, etc.) inherits the bypass.
-- `ME_API_URL` (`/api/me`) unchanged — single-call, not affected by
+- `ME_API_URL` (`/api/me`) unchanged, single-call, not affected by
   burst rate-limiting.
 
 ### Compatibility
@@ -108,23 +108,23 @@ pattern matching so the request reaches the origin.
   `send(...)` are unaffected; the new default only matters when no
   override is given.
 - The legacy `https://wdgwars.pl/api/upload/` keeps working on the
-  origin — `/endpoint/*` is purely an alias, not a replacement. Tools
+  origin. `/endpoint/*` is purely an alias, not a replacement. Tools
   can opt back into `/api/*` per-call if they need to.
 - `Client.send()` and the lower-level `transport.send()` retry/
   cooldown/silent-drop behaviour is unchanged.
 
-## [0.1.1] — save_key hardening
+## [0.1.1] - save_key hardening
 
 Lifts two defenses from Muninn v1.11.1's `save_key` into gungnir so
 every tool using the library inherits them automatically.
 
 ### Added
 
-- `KeyFileSymlinkError` — raised by `save_key()` when the target key
+- `KeyFileSymlinkError`: raised by `save_key()` when the target key
   file already exists as a symlink. Closes a redirect-to-arbitrary-
   file attack vector if anyone can plant a symlink in the config dir.
 - `save_key()` now opens the file with `O_CREAT|O_TRUNC` at mode
-  `0o600` atomically, so the file is never world-readable — not even
+  `0o600` atomically, so the file is never world-readable, not even
   for the microseconds between `write_text()` and a subsequent
   `chmod()`. Previously the perms tightened only after the write.
 
@@ -137,7 +137,7 @@ every tool using the library inherits them automatically.
   rather than minor because legitimate callers never hit the symlink
   path.
 
-## [0.1.0] — Initial release
+## [0.1.0] - Initial release
 
 First release. Extracted from
 [Muninn v1.11.1](https://github.com/HiroAlleyCat/adsb-to-wdgwars/releases/tag/v1.11.1)
@@ -146,23 +146,23 @@ maintaining its own copy.
 
 ### Added
 
-- `gungnir.Client` — high-level API with per-tool `tool`/`version`
+- `gungnir.Client`: high-level API with per-tool `tool`/`version`
   identity, `timeout` / `whoami_timeout` / `max_attempts` /
   `chunk_cooldown` / `user_agent_extra` defaults, and `__repr__`.
-- `gungnir.envelope.build_envelope()` and `build_payload()` — HMAC-SHA256
+- `gungnir.envelope.build_envelope()` and `build_payload()`. HMAC-SHA256
   signed envelope for `/api/upload/`. Byte-identical to Muninn v1.11.1
-  output for the same (payload, key, nonce) input — verified by a
+  output for the same (payload, key, nonce) input, verified by a
   parity test that imports muninn.py and compares signatures.
-- `gungnir.transport.send()` — batched upload to the signed endpoint.
-- `gungnir.transport.whoami()` — `/api/me` identity check.
-- `gungnir.keys` — API-key resolution with the documented precedence
+- `gungnir.transport.send()`: batched upload to the signed endpoint.
+- `gungnir.transport.whoami()`: `/api/me` identity check.
+- `gungnir.keys`: API-key resolution with the documented precedence
   `cli → env → file`, plus `scrub()` for redacting keys from log lines.
-- `gungnir.cooldown` — persistent server-cooldown state (`cooldown.json`
+- `gungnir.cooldown`: persistent server-cooldown state (`cooldown.json`
   in the per-tool config dir). Survives across cron invocations so a
   429 doesn't get hammered.
-- `gungnir.hwm` — high-water-mark tracking (`hwm.json` in the per-tool
+- `gungnir.hwm`: high-water-mark tracking (`hwm.json` in the per-tool
   config dir) for external monitoring.
-- `gungnir.diagnostics.check_silent_drop()` — detects the
+- `gungnir.diagnostics.check_silent_drop()`: detects the
   HTTP-200-ok-true-zero-counters pattern from Muninn v1.11.1 (locosp's
   v4 server-side type validation could silently drop every record while
   returning success).
@@ -170,7 +170,7 @@ maintaining its own copy.
 ### Behavior decisions
 
 These are the opinionated calls in v0.1.0. Each has a critic vector
-attached — they're listed here so the rationale survives outside this
+attached, they're listed here so the rationale survives outside this
 repo's commit history.
 
 - **`send()` requires exactly one of `aircraft`/`networks`/`meshcore_nodes`.**
@@ -180,7 +180,7 @@ repo's commit history.
   a no-op (returns 0); zero or multiple slots raises `ValueError`.
 
 - **A silent drop returns `rc=1`, not just a warning.** Muninn v1.11.1
-  warned but exited 0 — a transitional compromise. Gungnir is strict:
+  warned but exited 0. A transitional compromise. Gungnir is strict:
   if the detector fires, the caller exits non-zero so cron sees the
   failure. Detecting a failure and reporting success is broken behavior
   for a library.
@@ -216,7 +216,7 @@ repo's commit history.
 
 - **`whoami()` does not silently clamp the caller's timeout.** The
   Client has separate `timeout` (for `send`) and `whoami_timeout`
-  (default 30s) settings — if you set them explicitly, gungnir honors
+  (default 30s) settings. If you set them explicitly, gungnir honors
   what you set.
 
 - **User-Agent supports a `+url` suffix** per common bot-UA convention,
@@ -224,7 +224,7 @@ repo's commit history.
   server admins trace traffic back to the source repo.
 
 - **Tool name is path-validated.** `Client(tool="...")` rejects names
-  containing `/`, `\`, `..`, or null bytes. Defensive — tools self-select
+  containing `/`, `\`, `..`, or null bytes. Defensive. Tools self-select
   their name, but the check is free and the error message is clearer
   than what the OS would raise later.
 
@@ -248,7 +248,7 @@ repo's commit history.
   gungnir-backed Muninn v2.0 without any wire-protocol change. Verified
   by `tests/test_muninn_parity.py`.
 
-- **Config-dir paths preserved** when `tool="muninn"` — Muninn 1.x's
+- **Config-dir paths preserved** when `tool="muninn"`. Muninn 1.x's
   `~/.config/muninn/api.key` (POSIX) and `%APPDATA%/muninn/api.key`
   (Windows) are read/written unchanged.
 

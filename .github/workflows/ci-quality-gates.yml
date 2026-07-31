@@ -6,7 +6,7 @@ name: ci-quality-gates
 # adapted for a dependency-free library:
 #   * the test stage runs a 3.10/3.11/3.12 matrix (this lib is consumed on all
 #     three), with coverage produced on the 3.12 leg;
-#   * there is no Snyk stage — gungnir has no runtime dependencies, so there is
+#   * there is no Snyk stage - gungnir has no runtime dependencies, so there is
 #     no software-composition surface to scan. Add one (see the sibling repos)
 #     the day a runtime dependency is pinned in pyproject.toml;
 #   * the build stage produces an sdist + wheel rather than a single-file

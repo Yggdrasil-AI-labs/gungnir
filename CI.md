@@ -46,7 +46,7 @@ its own).
    `sonar-project.properties`.
 2. In the project settings, turn off Automatic Analysis so the CI scanner is
    the source of truth. (If Automatic Analysis is left on, the CI-based scan
-   refuses to run — the two cannot both analyse the project.)
+   refuses to run. The two cannot both analyse the project.)
 3. Create a token under My Account, Security, and add it to this repo as the
    `SONAR_TOKEN` Actions secret (Settings, Secrets and variables, Actions).
 

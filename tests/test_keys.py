@@ -103,7 +103,7 @@ class KeysTests(unittest.TestCase):
         self.assertIn("…", out)
 
     def test_scrub_noop_on_empty_key(self):
-        """An empty key string is a no-op — there's nothing to redact."""
+        """An empty key string is a no-op, there's nothing to redact."""
         self.assertEqual(scrub("plain text", ""), "plain text")
 
 

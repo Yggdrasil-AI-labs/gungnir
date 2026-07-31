@@ -17,10 +17,10 @@ where the server returns `HTTP 200 ok:true` with zero on every counter.
 
 Sibling repos in the WDGWars feeder family:
 
-- [Muninn](https://github.com/Yggdrasil-AI-labs/adsb-to-wdgwars) — ADS-B feeder
-- [Heimdall](https://github.com/Yggdrasil-AI-labs/meshcore-to-wdgwars) — MeshCore LoRa feeder
-- [wigle-to-wdgwars](https://github.com/Yggdrasil-AI-labs/wigle-to-wdgwars) — WiGLE Wi-Fi/BLE feeder
-- [wdgwars-api-tester](https://github.com/Yggdrasil-AI-labs/wdgwars-api-tester) — API surface probe
+- [Muninn](https://github.com/Yggdrasil-AI-labs/adsb-to-wdgwars). ADS-B feeder
+- [Heimdall](https://github.com/Yggdrasil-AI-labs/meshcore-to-wdgwars). MeshCore LoRa feeder
+- [wigle-to-wdgwars](https://github.com/Yggdrasil-AI-labs/wigle-to-wdgwars). WiGLE Wi-Fi/BLE feeder
+- [wdgwars-api-tester](https://github.com/Yggdrasil-AI-labs/wdgwars-api-tester). API surface probe
 
 ## Quick start
 
@@ -55,7 +55,7 @@ class Client:
 
 ## Why "gungnir"?
 
-Norse mythology — Odin's spear, said to always hit its mark when thrown.
+Norse mythology. Odin's spear, said to always hit its mark when thrown.
 Fits a delivery client whose job is reliable, signed delivery to wdgwars.pl.
 Continues the lab-wide Norse naming convention (alongside Muninn and Heimdall).
 

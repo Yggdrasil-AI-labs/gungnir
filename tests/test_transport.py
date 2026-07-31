@@ -3,7 +3,7 @@
 Mocks urllib.request.urlopen to exercise the retry path, the 429-bail
 path, the one-slot contract on send(), the inter-chunk cooldown, and
 the Client validation rules. The Muninn parity test (envelope bytes)
-covers the happy path — these tests cover the harder edges.
+covers the happy path, these tests cover the harder edges.
 
 To skip backoff sleeps, we mock ``gungnir.transport.time.sleep``; the
 library itself has no test-only knob in its public signature.
@@ -51,7 +51,7 @@ def _http_ok(body: bytes) -> mock.MagicMock:
 # ── User-Agent helper ─────────────────────────────────────────────────────
 
 class UserAgentTests(unittest.TestCase):
-    """The _user_agent helper is module-private but worth pinning — it
+    """The _user_agent helper is module-private but worth pinning, it
     encodes the bot-UA contract every external call follows."""
 
     def test_bare_form(self):
@@ -143,7 +143,7 @@ class SendChunkRetryTests(unittest.TestCase):
     def test_413_payload_too_large_records_cooldown_and_returns_envelope(self):
         """LOCOSP rolled out a 15 MB body cap with a structured 413 envelope
         on 2026-06-05. Treat it like 429 (record a cooldown, don't retry),
-        but return rc=1 instead of raising BatchAborted — the caller may
+        but return rc=1 instead of raising BatchAborted. The caller may
         have other queued payloads to attempt."""
         envelope = (
             b'{"ok":false,"error":"payload-too-large","http_status":413,'
@@ -167,7 +167,7 @@ class SendChunkRetryTests(unittest.TestCase):
         cooldown_record.assert_called_once()
         self.assertEqual(cooldown_record.call_args.args[0], "muninn")
         self.assertGreaterEqual(cooldown_record.call_args.args[1], 30.0)
-        # Single attempt only — must not retry the 413.
+        # Single attempt only. Must not retry the 413.
         self.assertEqual(urlopen.call_count, 1)
         sleep.assert_not_called()
 
@@ -192,7 +192,7 @@ class SendChunkRetryTests(unittest.TestCase):
 
     def test_413_without_envelope_falls_through_to_generic_rejected(self):
         """A 413 from CF or any non-LOCOSP layer (no payload-too-large body)
-        must not get the structured treatment — it should hit the generic
+        must not get the structured treatment. It should hit the generic
         rejected branch like any other 4xx, no cooldown recorded."""
         urlopen = mock.MagicMock(side_effect=[_http_error(413, b"<html>nope</html>")])
         with mock.patch("urllib.request.urlopen", urlopen), \
@@ -207,7 +207,7 @@ class SendChunkRetryTests(unittest.TestCase):
         cooldown_record.assert_not_called()
 
     def test_silent_drop_returns_rc1_not_batch_aborted(self):
-        """Silent drop is per-chunk — the next chunk might succeed."""
+        """Silent drop is per-chunk. The next chunk might succeed."""
         ok_silent = b'{"ok": true, "aircraft_imported": 0, "aircraft_already_seen": 0}'
         urlopen = mock.MagicMock(return_value=_http_ok(ok_silent))
         with mock.patch("urllib.request.urlopen", urlopen):

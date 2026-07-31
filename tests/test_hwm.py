@@ -69,7 +69,7 @@ class HwmTests(unittest.TestCase):
         self.assertIsNone(hwm.read("testtool"))
 
     def test_record_failure_is_nonfatal(self) -> None:
-        # A read-only config dir must not crash the upload path — HWM is
+        # A read-only config dir must not crash the upload path. HWM is
         # monitoring garnish, never load-bearing.
         with mock.patch.object(hwm.Path, "write_text",
                                side_effect=OSError("read-only")):

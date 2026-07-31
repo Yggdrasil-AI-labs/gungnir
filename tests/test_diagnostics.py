@@ -28,12 +28,12 @@ class SilentDropTests(unittest.TestCase):
 
     def test_returns_none_when_any_counter_nonzero(self):
         """A single non-zero counter means the upload was at least
-        partially accepted — not a silent drop."""
+        partially accepted. Not a silent drop."""
         resp = {"ok": True, "aircraft_imported": 1, "aircraft_already_seen": 0}
         self.assertIsNone(check_silent_drop(200, resp, sent_count=10))
 
     def test_returns_none_on_empty_upload(self):
-        """A 0-record upload trivially has 0 counters — not a drop."""
+        """A 0-record upload trivially has 0 counters. Not a drop."""
         resp = {"ok": True}
         self.assertIsNone(check_silent_drop(200, resp, sent_count=0))
 
@@ -49,12 +49,12 @@ class SilentDropTests(unittest.TestCase):
         self.assertIsNone(check_silent_drop(200, resp, sent_count=10))
 
     def test_forward_compatible_with_unknown_counters(self):
-        """The check is 'did ANY known counter come back non-zero' —
+        """The check is 'did ANY known counter come back non-zero',
         unknown new server counters don't trigger a false positive."""
         resp = {"ok": True, "some_future_counter": 99}
         sd = check_silent_drop(200, resp, sent_count=10)
         # All KNOWN counters are zero, so this DOES register as a drop
-        # — that's correct behavior; unknown counters can't satisfy us.
+        #, that's correct behavior; unknown counters can't satisfy us.
         # If the server adds a new meaningful counter, we add it to
         # KNOWN_COUNTERS in diagnostics.py. Explicit list = explicit
         # contract.

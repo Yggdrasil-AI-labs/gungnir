@@ -37,7 +37,7 @@ class EnvelopeTests(unittest.TestCase):
         """Reproduce muninn.py upload() bytes for a fixed input.
 
         If this fails, gungnir is not a drop-in replacement for muninn's
-        envelope build — every deployed feeder's signatures stop matching
+        envelope build. Every deployed feeder's signatures stop matching
         what the server expects."""
         api_key = "test-key-12345678"
         nonce = "deadbeefcafebabe"
@@ -75,7 +75,7 @@ class EnvelopeTests(unittest.TestCase):
 
     def test_payload_key_order_stable(self):
         """The server is tolerant about key order in the inner JSON, but
-        we sign the bytes — so stable ordering means stable signatures
+        we sign the bytes. So stable ordering means stable signatures
         for the same logical payload."""
         p = build_payload(aircraft=[{"icao": "A"}], networks=[{"bssid": "B"}])
         body = json.dumps(p, separators=(",", ":"))

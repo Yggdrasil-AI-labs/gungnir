@@ -32,7 +32,7 @@ It has no CLI, parses no arguments, and runs no subprocesses.
 - `save_key()` refuses symlinked key files and creates the file
   `0o600` atomically (`O_WRONLY|O_CREAT|O_TRUNC`).
 - `scrub()` redacts the key from every log line the library emits.
-- Keys travel over HTTPS only (`ssl.create_default_context()` — system
+- Keys travel over HTTPS only (`ssl.create_default_context()`, system
   trust store, hostname verification, TLS 1.2+), in the `X-API-Key`
   header.
 
@@ -44,5 +44,5 @@ review and hotspot dispositions.
 Open a private security advisory on the
 [Security tab](https://github.com/Yggdrasil-AI-labs/gungnir/security/advisories)
 of this repo, or open a regular issue if the report is not sensitive.
-Transport-level issues usually affect every consuming feeder — please
+Transport-level issues usually affect every consuming feeder, please
 report here (the single point of fix) rather than against a feeder.

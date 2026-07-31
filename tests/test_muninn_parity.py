@@ -1,6 +1,6 @@
 """Cross-check: gungnir envelopes are byte-identical to Muninn v1.11.1.
 
-If this test ever fails, gungnir is NOT a safe drop-in for Muninn — every
+If this test ever fails, gungnir is NOT a safe drop-in for Muninn, every
 deployed feeder's signatures would stop matching what the server expects.
 
 The test imports Muninn directly and compares the envelope bytes its
@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT))
 # Import gungnir
 from gungnir.envelope import build_envelope, build_payload  # noqa: E402
 
-# Try to import muninn — skip cleanly if Muninn isn't on disk where we
+# Try to import muninn - skip cleanly if Muninn isn't on disk where we
 # expect (e.g. in a CI environment that only checks out gungnir).
 MUNINN_PATH = Path.home() / "Documents" / "GitHub" / "HiroAlleyCat" / "adsb-to-wdgwars"
 if MUNINN_PATH.exists():
@@ -77,7 +77,7 @@ class MuninnParityTests(unittest.TestCase):
         )
 
         self.assertEqual(gungnir_env, muninn_env,
-                         "gungnir envelope diverges from muninn v1.11.1 — "
+                         "gungnir envelope diverges from muninn v1.11.1, "
                          "deployments would break on upgrade")
 
     def test_parity_empty_chunk(self):
@@ -91,7 +91,7 @@ class MuninnParityTests(unittest.TestCase):
         self.assertEqual(gungnir_env, muninn_env)
 
     def test_parity_500_aircraft_batch(self):
-        """The full-batch case (500 records — gungnir's default batch_size
+        """The full-batch case (500 records, gungnir's default batch_size
         and Muninn's tested chunk size)."""
         api_key = "k"
         nonce = "b" * 16
