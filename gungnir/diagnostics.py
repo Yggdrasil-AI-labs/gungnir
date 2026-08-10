@@ -33,6 +33,41 @@ KNOWN_COUNTERS = (
 )
 
 
+# Phrases the server uses to say, in the clear, that it chose not to process a
+# payload it had seen before. A dedupe reply is not the opaque-validation
+# failure the silent-drop detector exists to catch: those records were accepted
+# on an earlier push, nothing was lost, and there is nothing for the operator
+# to fix. Treating it as a drop failed ~40% of Muninn's hourly runs (43 of 109
+# over 2026-08-06..10), each one marking a failed unit and firing a health
+# alert, which is exactly the noise that trains an operator to ignore alerts.
+#
+# Matched case-insensitively against the informational fields below, never
+# against counters. An explicit statement from the server is the contract.
+DELIBERATE_SKIP_MARKERS = (
+    "already uploaded recently",
+    "no new processing",
+)
+
+SKIP_FIELDS = ("info", "message", "note")
+
+
+def check_deliberate_skip(response: dict) -> str | None:
+    """Return the server's own words if it says it skipped this payload.
+
+    Distinct from `check_silent_drop`: a skip is the server declining work it
+    has already done, which is healthy. Callers should log it and return
+    success, NOT a non-zero exit code.
+    """
+    for field in SKIP_FIELDS:
+        text = response.get(field)
+        if not isinstance(text, str):
+            continue
+        low = text.lower()
+        if any(marker in low for marker in DELIBERATE_SKIP_MARKERS):
+            return text
+    return None
+
+
 @dataclass
 class SilentDrop:
     """Returned by `check_silent_drop()` when the failure pattern is detected.
@@ -64,6 +99,10 @@ def check_silent_drop(
     response so the cause is visible) and consider returning a non-zero
     exit code so cron jobs surface the problem.
 
+    A response carrying an explicit dedupe/cooldown message (see
+    `check_deliberate_skip`) is NOT a silent drop, even with every counter
+    zero. The server told us why it did no work.
+
     The ``raw_text_excerpt`` parameter is the caller's already-truncated
     snippet of the response body; gungnir does not truncate further. The
     name is load-bearing. Keep it explicit at the call site.
@@ -75,6 +114,11 @@ def check_silent_drop(
     if sent_count <= 0:
         return None
     if any(response.get(k) for k in KNOWN_COUNTERS):
+        return None
+    # An explicit dedupe/cooldown reply explains the zero counters. Zero
+    # counters PLUS no explanation is the dangerous case; zero counters plus
+    # "already uploaded recently" is the server working as designed.
+    if check_deliberate_skip(response) is not None:
         return None
     return SilentDrop(sent_count=sent_count, response=response,
                       raw_text_excerpt=raw_text_excerpt)

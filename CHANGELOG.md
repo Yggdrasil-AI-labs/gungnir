@@ -7,7 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - a dedupe reply is not a silent drop
+
+The server can answer a re-sent payload with HTTP 200, `ok:true`, every
+counter zero, and `info: "This payload was already uploaded recently - no new
+processing."` That is the same shape as the v4 silent-drop bug, so
+`check_silent_drop` flagged it and `send_chunk` returned rc=1.
+
+It is not the same thing. A dedupe reply is the server declining work it has
+already done: those records landed on an earlier push, nothing was lost, and
+there is nothing for an operator to fix. The distinguishing evidence is that
+the server says so in the clear, where the v4 bug said nothing at all.
+
+Observed live on 2026-08-10: Muninn re-sends an unchanged ADS-B snapshot on
+its hourly cadence, so 43 of 109 sleipnir-health runs over five days failed the
+push job and raised an alert. Zero counters PLUS no explanation is still
+treated as a silent drop, unchanged.
+
 ### Added
+
+- `diagnostics.check_deliberate_skip(response)` returns the server's own words
+  when it says it skipped a payload it already had, else None. Matches
+  `already uploaded recently` / `no new processing` case-insensitively against
+  the `info`, `message`, and `note` fields, never against counters. New markers
+  go in `DELIBERATE_SKIP_MARKERS` without touching call sites.
+
+### Changed
+
+- `send_chunk` checks for a deliberate skip before the silent-drop test, logs
+  the server's explanation at INFO, and returns rc=0. Callers that treated
+  rc=1 as "surface this to a human" stop firing on healthy dedupes.
+- `check_silent_drop` returns None when the response carries a deliberate-skip
+  message, so a caller using the detector directly cannot reach the old
+  verdict either.
+
+### Compatibility
+
+Additive. No wire-protocol change. A caller that has never seen a dedupe reply
+behaves identically. Callers pinned to 0.1.3 keep the old behavior and will
+keep reporting dedupes as failures.
+
+### Also in this release (tooling and docs, carried from Unreleased)
 
 - CI quality-gate pipeline (`.github/workflows/ci-quality-gates.yml`): pytest
   across a 3.10/3.11/3.12 matrix with coverage, a SonarCloud quality gate, and
@@ -40,7 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `v0.1.0...HEAD`. `SECURITY-FINDINGS.md` no longer claims the repo "is not
   yet imported into SonarCloud" (wired since 2026-07-02).
 
-Tooling/CI/docs only, no change to the library API, so no version bump.
+That batch was tooling/CI/docs only. It ships here alongside the API
+change above.
 
 ## [0.1.3] - structured HTTP 413 handling for the wdgwars.pl 15 MB upload cap
 
@@ -252,7 +293,8 @@ repo's commit history.
   `~/.config/muninn/api.key` (POSIX) and `%APPDATA%/muninn/api.key`
   (Windows) are read/written unchanged.
 
-[Unreleased]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/Yggdrasil-AI-labs/gungnir/compare/v0.1.0...v0.1.1

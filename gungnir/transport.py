@@ -192,6 +192,17 @@ def send_chunk(
                 elapsed = time.monotonic() - t0
                 last_response = data
 
+                skipped = diagnostics.check_deliberate_skip(data)
+                if skipped is not None:
+                    # The server deduped a payload it already has. Healthy:
+                    # the records landed on an earlier push. Log it so the
+                    # zero counters are explained, then report success.
+                    log.info(
+                        "[%s] server skipped %d records it already had: %s",
+                        tool, sent_count, skipped,
+                    )
+                    return 0, data
+
                 sd = diagnostics.check_silent_drop(
                     resp.status, data, sent_count, raw_text_excerpt=txt[:800],
                 )
