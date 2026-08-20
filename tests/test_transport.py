@@ -460,3 +460,127 @@ class ClientTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+MAINTENANCE_PAGE = b"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WDGoWars &mdash; Maintenance</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0b0f14; color:#c8d6e5; font-family:monospace; }
+</style>
+</head>
+<body><h1>Back shortly</h1></body>
+</html>
+"""
+
+
+class DescribeBodyTests(unittest.TestCase):
+    """An HTML error page must not be logged as markup.
+
+    A player hit a maintenance window mid-upload and got a DOCTYPE, a
+    stylesheet, and no usable information in the terminal.
+    """
+
+    def test_maintenance_page_collapses_to_one_line(self):
+        out = transport.describe_body(MAINTENANCE_PAGE.decode())
+        self.assertIn("HTML page", out)
+        self.assertIn("Maintenance", out)
+        self.assertNotIn("DOCTYPE", out)
+        self.assertNotIn("<style>", out)
+        self.assertEqual(out.count("\n"), 0)
+
+    def test_html_without_a_title_still_collapses(self):
+        out = transport.describe_body("<html><body>502 Bad Gateway</body></html>")
+        self.assertIn("HTML page", out)
+        self.assertNotIn("<html>", out)
+
+    def test_bare_doctype_and_head_are_recognised(self):
+        for page in ("<!doctype html><p>x", "<HTML lang=en>x", "<head><title>t</title>"):
+            with self.subTest(page=page):
+                self.assertIn("HTML page", transport.describe_body(page))
+
+    def test_json_body_passes_through_untouched(self):
+        body = '{"error":"payload-too-large","max_bytes":15728640}'
+        self.assertEqual(transport.describe_body(body), body)
+
+    def test_plain_text_passes_through_untouched(self):
+        self.assertEqual(transport.describe_body("rate limited"), "rate limited")
+
+    def test_empty_body_is_named_not_blank(self):
+        self.assertEqual(transport.describe_body(""), "(empty response body)")
+
+    def test_long_non_html_body_is_truncated(self):
+        out = transport.describe_body("x" * 5000, limit=400)
+        self.assertEqual(len(out), 400)
+
+    def test_title_is_forced_to_ascii(self):
+        """This string reaches a log line that may hit a cp1252 console."""
+        out = transport.describe_body(
+            "<html><head><title>café “down” — WDGoWars</title></head>")
+        out.encode("ascii")  # must not raise
+        self.assertIn("HTML page", out)
+
+    def test_an_html_looking_json_string_is_not_mistaken_for_a_page(self):
+        body = '{"error":"unexpected token <html"}'
+        self.assertEqual(transport.describe_body(body), body)
+
+
+class HtmlErrorPageLoggingTests(unittest.TestCase):
+    def test_503_maintenance_page_is_not_logged_as_markup(self):
+        urlopen = mock.MagicMock(side_effect=[
+            _http_error(503, MAINTENANCE_PAGE) for _ in range(3)
+        ])
+        with mock.patch("urllib.request.urlopen", urlopen), \
+             mock.patch("gungnir.transport.time.sleep"), \
+             self.assertLogs("gungnir.transport", level="WARNING") as cm:
+            rc, _ = transport.send_chunk(
+                "muninn", "1.11.1",
+                "https://example.invalid/api/upload/",
+                "k", build_payload(aircraft=[{"icao": "AAAAAA"}]),
+                sent_count=1, max_attempts=3, backoff_base=2.0,
+            )
+        self.assertEqual(rc, 1)
+        logged = "\n".join(cm.output)
+        self.assertNotIn("DOCTYPE", logged)
+        self.assertNotIn("box-sizing", logged)
+        self.assertIn("Maintenance", logged)
+
+    def test_5xx_giving_up_does_not_call_it_a_rejection(self):
+        """A 503 never judged the payload, so 'rejected' would misdirect."""
+        urlopen = mock.MagicMock(side_effect=[
+            _http_error(503, MAINTENANCE_PAGE) for _ in range(3)
+        ])
+        with mock.patch("urllib.request.urlopen", urlopen), \
+             mock.patch("gungnir.transport.time.sleep"), \
+             self.assertLogs("gungnir.transport", level="ERROR") as cm:
+            transport.send_chunk(
+                "muninn", "1.11.1",
+                "https://example.invalid/api/upload/",
+                "k", build_payload(aircraft=[{"icao": "AAAAAA"}]),
+                sent_count=1, max_attempts=3, backoff_base=2.0,
+            )
+        final = "\n".join(cm.output)
+        self.assertIn("not accepting uploads right now", final)
+        self.assertNotIn("rejected by", final)
+
+    def test_a_real_4xx_rejection_still_says_rejected(self):
+        urlopen = mock.MagicMock(side_effect=[
+            _http_error(400, b'{"error":"bad-envelope"}')
+        ])
+        with mock.patch("urllib.request.urlopen", urlopen), \
+             mock.patch("gungnir.transport.time.sleep"), \
+             self.assertLogs("gungnir.transport", level="ERROR") as cm:
+            rc, _ = transport.send_chunk(
+                "muninn", "1.11.1",
+                "https://example.invalid/api/upload/",
+                "k", build_payload(aircraft=[{"icao": "AAAAAA"}]),
+                sent_count=1, max_attempts=3, backoff_base=2.0,
+            )
+        self.assertEqual(rc, 1)
+        out = "\n".join(cm.output)
+        self.assertIn("rejected by", out)
+        self.assertIn("bad-envelope", out)

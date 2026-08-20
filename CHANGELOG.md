@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - An HTML error page is not a log line
+
+### Fixed
+
+- **An HTML error page no longer gets logged as markup.** A player hit a
+  portal maintenance window mid-upload and got a DOCTYPE, a `<meta>` block
+  and a stylesheet in his terminal, with the one fact that mattered (the
+  portal was not answering) buried in it. `describe_body()` now collapses an
+  HTML body to one line naming its `<title>`, while JSON and plain text pass
+  through as before. Applied to the 5xx retry log, the give-up log, and the
+  silent-drop excerpt.
+- **A 5xx is no longer reported as a rejection.** "rejected by wdgwars.pl"
+  sent people looking at their own data for a fault that was never theirs:
+  the server did not get far enough to judge the payload. A 5xx give-up now
+  says the portal is not accepting uploads right now. A genuine 4xx
+  rejection still says rejected.
+- **`__version__` said 0.1.3 while the v0.1.4 tag was out.** The string was
+  never bumped with the tag, so every feeder installing v0.1.4 got a library
+  that self-reported 0.1.3 in its User-Agent and diagnostics. Now 0.1.5,
+  matching this release.
+
 ## [0.1.4] - a dedupe reply is not a silent drop
 
 The server can answer a re-sent payload with HTTP 200, `ok:true`, every

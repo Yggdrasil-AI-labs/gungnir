@@ -26,8 +26,10 @@ test-only hook in its public signature.
 """
 from __future__ import annotations
 
+import html
 import json
 import logging
+import re
 import ssl
 import time
 import urllib.error
@@ -51,6 +53,46 @@ DEFAULT_WHOAMI_TIMEOUT = 30.0
 DEFAULT_MAX_ATTEMPTS = 3
 DEFAULT_BACKOFF_BASE = 2.0
 DEFAULT_CHUNK_COOLDOWN = 1.0
+
+
+# A proxy, a WAF, or the portal's own maintenance page answers with HTML, not
+# the JSON envelope. Logging that verbatim puts a DOCTYPE and a stylesheet in
+# the user's terminal and buries the one fact that matters, which is that the
+# portal is not answering right now. Reported by a player who hit a
+# maintenance window mid-upload and got a wall of markup back.
+_HTML_HINT = re.compile(r"<!doctype\s+html|<html[\s>]|<head[\s>]", re.I)
+_HTML_TITLE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+
+
+def describe_body(text: str, limit: int = 400) -> str:
+    """Render a response body for a log line.
+
+    JSON and plain text pass through, truncated to ``limit``. An HTML page
+    collapses to one line naming its <title> when it has one, because the
+    markup itself tells the reader nothing they can act on.
+
+    Never raises: this only ever runs while building an error message, and
+    a formatting failure must not replace the error it was describing.
+    """
+    if not text:
+        return "(empty response body)"
+    try:
+        if not _HTML_HINT.search(text[:512]):
+            return text[:limit]
+        size = len(text)
+        m = _HTML_TITLE.search(text)
+        if m:
+            # Force ASCII: a page title can hold an em-dash or a smart quote,
+            # and this string ends up in a log line that may be written to a
+            # cp1252 Windows console. A diagnostic is not worth a
+            # UnicodeEncodeError inside the logging handler.
+            title = " ".join(html.unescape(m.group(1)).split())[:120]
+            title = title.encode("ascii", "replace").decode("ascii")
+            if title:
+                return f"HTML page \"{title}\" ({size} B), not an API response"
+        return f"HTML page ({size} B), not an API response"
+    except Exception:
+        return text[:limit]
 
 
 def _user_agent(tool: str, version: str, extra: str | None = None) -> str:
@@ -210,7 +252,7 @@ def send_chunk(
                     log.warning(
                         "HTTP 200 ok:true but every counter zero, %d records "
                         "sent. Raw response: %s",
-                        sent_count, scrub(sd.raw_text_excerpt, key),
+                        sent_count, scrub(describe_body(sd.raw_text_excerpt), key),
                     )
                     return 1, data
 
@@ -248,12 +290,23 @@ def send_chunk(
                 wait = backoff_base * (2 ** (attempt - 1))
                 log.warning("[%s] HTTP %d, retrying in %.1fs (attempt %d/%d): %s",
                             tool, e.code, wait, attempt, max_attempts,
-                            scrub(err_body, key))
+                            scrub(describe_body(err_body), key))
                 time.sleep(wait)
                 continue
 
+            if 500 <= e.code < 600:
+                # Not a rejection: the server never got far enough to judge
+                # the payload. Say so, so nobody goes looking at their data.
+                log.error(
+                    "[%s] wdgwars.pl is not accepting uploads right now "
+                    "(HTTP %d after %d attempts): %s",
+                    tool, e.code, max_attempts,
+                    scrub(describe_body(err_body), key),
+                )
+                return 1, last_response
+
             log.error("[%s] rejected by wdgwars.pl (HTTP %d): %s",
-                      tool, e.code, scrub(err_body, key))
+                      tool, e.code, scrub(describe_body(err_body), key))
             return 1, last_response
 
         except urllib.error.URLError as e:
