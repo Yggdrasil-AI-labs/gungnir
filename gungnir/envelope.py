@@ -1,6 +1,6 @@
 """HMAC-SHA256 envelope for the wdgwars.pl signed-JSON endpoint.
 
-Envelope shape (canonical, as accepted by https://wdgwars.pl/api/upload/):
+Envelope shape (canonical, as accepted by https://wdgwars.pl/endpoint/upload/):
 
     {
         "data":  base64(json(payload)),
