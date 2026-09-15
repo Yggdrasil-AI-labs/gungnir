@@ -44,9 +44,17 @@ from .transport import (
 # networks / etc. Flipped from /api/upload/ in v0.1.2 (2026-05-31) after
 # CF L7 protection started 429ing /api/* bursts before reaching origin
 # PHP. Consumers can still force /api/upload/ via the `api_url` kwarg.
-# /api/me stays on /api/* - single-call, not affected by burst limits.
+# Key validation moved to /endpoint/me in v0.1.6 (2026-09-15). It sat on
+# /api/me until then on the reasoning that a single call cannot trip a burst
+# limit, which is true and was the wrong test: CF's L7 shield can gate the
+# whole /api/* pattern during an event, and that is exactly the moment a
+# feeder still has to validate its key. A 429 or a challenge there reads to
+# the operator as a bad key. Same router, same body: /api/me and /endpoint/me
+# returned byte-identical 33-field responses when this was changed. hugin's
+# cf-l7-bypass-health probe deliberately calls BOTH and is the place that
+# still needs the /api/* form.
 DEFAULT_API_URL = "https://wdgwars.pl/endpoint/upload/"
-ME_API_URL = "https://wdgwars.pl/api/me"
+ME_API_URL = "https://wdgwars.pl/endpoint/me"
 
 # Characters that must not appear in a tool name - they'd let a caller
 # escape the config dir or create invalid paths on Windows.
@@ -169,7 +177,7 @@ class Client:
 
     # ── Server interaction ─────────────────────────────────────────────
     def whoami(self, key: str, *, timeout: float | None = None) -> int:
-        """GET ``/api/me`` to validate ``key``. Returns shell exit code.
+        """GET the identity endpoint to validate ``key``. Returns shell exit code.
 
         ``timeout`` defaults to the Client's ``whoami_timeout`` (30s). Pass
         an explicit value to override, no silent clamping.

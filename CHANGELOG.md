@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - Key validation leaves the /api/* pattern
+
+### Changed
+
+- **`ME_API_URL` now points at `/endpoint/me`.** Uploads moved to
+  `/endpoint/*` in v0.1.2 to get out from under Cloudflare's L7 shield, but
+  key validation was left on `/api/me` because a single call cannot trip a
+  burst limit. That was the wrong test. The shield gates the whole `/api/*`
+  pattern during an event, and that is exactly when a feeder still needs to
+  validate its key; the 429 or challenge it gets back reads to the operator
+  as a bad key rather than as a platform event. Every call gungnir makes is
+  now on one path family.
+- Verified before the switch: `/api/me` and `/endpoint/me` returned
+  byte-identical 33-field 5008-byte responses for the same key
+  (2026-09-15). Callers that need the old path can still pass
+  `me_url=`, and hugin's `cf-l7-bypass-health` probe deliberately calls both.
+
 ## [0.1.5] - An HTML error page is not a log line
 
 ### Fixed

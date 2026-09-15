@@ -584,3 +584,26 @@ class HtmlErrorPageLoggingTests(unittest.TestCase):
         out = "\n".join(cm.output)
         self.assertIn("rejected by", out)
         self.assertIn("bad-envelope", out)
+
+
+class TestDefaultUrlsStayOnEndpointPrefix(unittest.TestCase):
+    """Every default URL must sit on /endpoint/*, not /api/*.
+
+    Uploads moved in v0.1.2 and key validation in v0.1.6. The reason is not
+    burst limits: Cloudflare's L7 shield gates the whole /api/* pattern during
+    an event, and a feeder that cannot validate its key then reports a bad key
+    to its operator instead of a platform event. A future edit that puts either
+    default back on /api/* should fail here rather than in the field.
+    """
+
+    def test_upload_default(self):
+        self.assertEqual(gungnir.DEFAULT_API_URL,
+                         "https://wdgwars.pl/endpoint/upload/")
+
+    def test_identity_default(self):
+        self.assertEqual(gungnir.ME_API_URL, "https://wdgwars.pl/endpoint/me")
+
+    def test_no_api_prefix_in_any_default(self):
+        for name in ("DEFAULT_API_URL", "ME_API_URL"):
+            with self.subTest(name):
+                self.assertNotIn("/api/", getattr(gungnir, name))

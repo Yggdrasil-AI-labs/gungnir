@@ -132,7 +132,7 @@ def whoami(
     timeout: float = DEFAULT_WHOAMI_TIMEOUT,
     user_agent_extra: str | None = None,
 ) -> int:
-    """GET the ``/api/me`` endpoint to validate ``key``.
+    """GET the identity endpoint (``/endpoint/me``) to validate ``key``.
 
     Returns shell exit code: 0 on success, 1 on any failure. Never echoes
     the API key, even in error paths.
