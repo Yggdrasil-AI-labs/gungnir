@@ -163,6 +163,57 @@ class TestKeyLevelApi:
         assert holds.is_held("ABC123", holds.load("t"), now)
 
 
+class TestImportedCount:
+    """Reading back what the server did with the upload that just ran."""
+
+    def _write_hwm(self, tool, ts, counters):
+        from gungnir import hwm
+        p = hwm._path(tool)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps({"last_upload_ts": ts,
+                                 "counters": counters}))
+
+    def test_reads_the_slot_specific_counter(self):
+        now = time.time()
+        for field in ("aircraft_imported", "meshcore_imported", "imported"):
+            self._write_hwm("t", now + 5, {field: 7})
+            assert holds.imported_count("t", now) == 7, field
+
+    def test_zero_is_a_real_answer(self):
+        # The whole point: 0 means the server already had everything, which
+        # is what earns the long hold. It must not read as "unknown".
+        now = time.time()
+        self._write_hwm("t", now + 5, {"imported": 0})
+        assert holds.imported_count("t", now) == 0
+        assert holds.ttl_for(holds.imported_count("t", now)) == \
+            holds.CONFIRMED_TTL
+
+    def test_a_watermark_from_an_earlier_run_is_not_ours(self):
+        now = time.time()
+        self._write_hwm("t", 1.0, {"imported": 0})
+        assert holds.imported_count("t", now) is None
+
+    def test_multi_chunk_cannot_be_established(self):
+        # hwm keeps the last chunk only, so its counters describe a
+        # fraction of what was sent.
+        now = time.time()
+        self._write_hwm("t", now + 5, {"imported": 0})
+        assert holds.imported_count("t", now, single_chunk=False) is None
+
+    def test_missing_or_malformed_watermark_is_unknown(self):
+        now = time.time()
+        assert holds.imported_count("t", now) is None
+        self._write_hwm("t", now + 5, {})
+        assert holds.imported_count("t", now) is None
+        from gungnir import hwm
+        hwm._path("t").write_text("{not json")
+        assert holds.imported_count("t", now) is None
+
+    def test_unknown_never_earns_the_long_hold(self):
+        now = time.time()
+        assert holds.ttl_for(holds.imported_count("t", now)) == holds.SENT_TTL
+
+
 class TestTtlChoice:
     def test_zero_imported_earns_the_confirmed_hold(self):
         assert holds.ttl_for(0) == holds.CONFIRMED_TTL

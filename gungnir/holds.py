@@ -160,6 +160,39 @@ def record_sent(tool: str, records: list[dict], slot: str, now: float,
     record_keys(tool, (identity(r, slot) for r in records), now, ttl)
 
 
+def imported_count(tool: str, sent_at: float,
+                   single_chunk: bool = True) -> int | None:
+    """How many records the server imported on the upload that just ran, or
+    None when that cannot be established.
+
+    `hwm.record` writes the server's own counters after each successful
+    chunk, which is the only authority on what actually landed. None is not
+    "nothing was imported", it is "we did not learn", and callers must keep
+    the two apart: feeding a None into `ttl_for` as a zero would earn a
+    day-long hold on a payload nobody confirmed.
+
+    Only meaningful for a single-chunk upload. `hwm.record` keeps the last
+    chunk only, so a multi-chunk upload cannot be checked against its own
+    total and returns None. One guard covers the rest: a missing file, a
+    missing key and a malformed value all mean the same thing here.
+    """
+    if not single_chunk:
+        return None
+    try:
+        from . import hwm
+        h = hwm.read(tool) or {}
+        # A watermark older than this upload belongs to a different run.
+        if float(h["last_upload_ts"]) < sent_at:
+            return None
+        c = h["counters"]
+        for field in ("aircraft_imported", "meshcore_imported", "imported"):
+            if field in c:
+                return int(c[field])
+        return None
+    except Exception:
+        return None
+
+
 def ttl_for(imported: int | None) -> float:
     """How long to hold a payload, given what the server imported from it.
 

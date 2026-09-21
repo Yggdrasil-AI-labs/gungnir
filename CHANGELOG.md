@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-21 - Read back what the server imported
+
+### Added
+
+- **`holds.imported_count(tool, sent_at, single_chunk=True)`**: how many
+  records the server imported on the upload that just ran, or None when
+  that cannot be established. Muninn had this logic inline; wigle-to-wdgwars
+  needs the same thing to choose a hold length, and writing it twice is the
+  drift this module exists to prevent.
+
+  None is not zero. Zero is the server saying it already held everything in
+  the payload, which is what earns the day-long hold; None means we did not
+  learn, and `ttl_for(None)` is the short hold. Feeding an unread counter in
+  as a zero would hold back a payload nobody confirmed.
+
+  Multi-chunk uploads return None: `hwm.record` keeps the last chunk only,
+  so its counters describe a fraction of what was sent. The slot-specific
+  counters (`aircraft_imported`, `meshcore_imported`) are preferred over the
+  generic `imported`, since a CSV network upload reports the generic one
+  while the JSON slots report their own.
+
 ## [0.3.0] - 2026-09-21 - A key-level entry point for holds
 
 ### Added
