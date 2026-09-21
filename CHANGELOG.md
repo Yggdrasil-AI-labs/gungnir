@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-21 - Shared already-sent holds
+
+### Added
+
+- **`gungnir.holds`**: the "don't spend a sync on records the server already
+  has" primitive, shared by every feeder instead of written three times.
+
+  Muninn grew this over v2.3.0-2.4.0 and it took four attempts to get right.
+  wigle-to-wdgwars and heimdall have the same problem and neither has the
+  fix, which is the case for it living here.
+
+  It is a primitive, not a hook inside `transport.send`. Only Muninn posts
+  through `send`: wigle-to-wdgwars has its own multipart CSV uploader and
+  heimdall its own envelope entirely, so a transport hook would reach one of
+  the three.
+
+  Holds are stored as expiry times rather than send times, so two lengths
+  coexist in one map:
+
+  - **A day** (`CONFIRMED_TTL`) when an upload came back having imported
+    nothing. That response is the server saying it already held every record
+    in the payload: its own verdict, and the only case where it effectively
+    itemises what it has.
+  - **An hour** (`SENT_TTL`) when the server imported something, or when the
+    response could not be read. A mixed response does not say WHICH records
+    were new, and `ttl_for(None)` is deliberately not `ttl_for(0)`.
+
+  Each rule here is a bug that shipped in Muninn first. Requiring the
+  server's counters to account for a payload made the gate inert on a real
+  feeder (three of six consecutive cycles came back one short, and the
+  missing record is counted nowhere). Holding everything for an hour did
+  almost nothing on a fixed station, where records turn over faster than the
+  hold expires while the payload is still full of things the server has had
+  for days.
+
+  Every failure path errs toward uploading: an unreadable state file, an
+  unwritable config dir, or a record whose identity cannot be read costs one
+  redundant upload and never suppresses one. State is per tool and written
+  atomically, since the `--schedule` installers can leave two processes
+  against one config dir.
+
 ## [0.1.6] - Key validation leaves the /api/* pattern
 
 ### Changed

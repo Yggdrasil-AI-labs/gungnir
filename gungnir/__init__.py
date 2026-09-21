@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from .__version__ import __version__
 from . import cooldown, diagnostics, envelope, hwm, keys, transport
+from . import holds  # noqa: F401
 from .diagnostics import SilentDrop, check_silent_drop
 from .envelope import build_envelope, build_payload
 from .keys import KeyFileSymlinkError
@@ -79,6 +80,7 @@ __all__ = [
     "cooldown",
     "diagnostics",
     "envelope",
+    "holds",
     "hwm",
     "keys",
     "transport",
