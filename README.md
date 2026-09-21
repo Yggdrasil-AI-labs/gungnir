@@ -17,10 +17,22 @@ where the server returns `HTTP 200 ok:true` with zero on every counter.
 
 Sibling repos in the WDGWars feeder family:
 
+Consumers of this library:
+
 - [Muninn](https://github.com/Yggdrasil-AI-labs/adsb-to-wdgwars). ADS-B feeder
-- [Heimdall](https://github.com/Yggdrasil-AI-labs/meshcore-to-wdgwars). MeshCore LoRa feeder
 - [wigle-to-wdgwars](https://github.com/Yggdrasil-AI-labs/wigle-to-wdgwars). WiGLE Wi-Fi/BLE feeder
-- [wdgwars-api-tester](https://github.com/Yggdrasil-AI-labs/wdgwars-api-tester). API surface probe
+
+Family members that are **not** consumers:
+
+- [Heimdall](https://github.com/Yggdrasil-AI-labs/meshcore-to-wdgwars). MeshCore LoRa
+  feeder. Deliberately inlines its own HMAC transport: it ships as a CLI and a
+  Pyodide browser page from one file, and this library imports `ssl` at module
+  scope, which Pyodide unvendors. The 2026-06-03 family audit weighed extracting
+  it and chose to keep the inline transport, accepting that **transport fixes
+  landing here must be ported to Heimdall by hand**. It can still use the
+  dependency-free parts (`holds`) through a lazy import when installed.
+- [wdgwars-api-tester](https://github.com/Yggdrasil-AI-labs/wdgwars-api-tester).
+  API surface probe
 
 ## Quick start
 

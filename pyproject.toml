@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gungnir"
 dynamic = ["version"]
-description = "Shared transport client for the WDGWars (wdgwars.pl) feeders. HMAC envelope, cooldown, silent-drop detection. Used by Muninn (ADS-B), Heimdall (mesh), wigle-to-wdgwars (WiFi/BLE)."
+description = "Shared transport client for the WDGWars (wdgwars.pl) feeders. HMAC envelope, cooldown, silent-drop detection, already-sent holds. Used by Muninn (ADS-B) and wigle-to-wdgwars (WiFi/BLE). Heimdall (mesh) inlines its own transport and is not a consumer."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}

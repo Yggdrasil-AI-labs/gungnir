@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-21 - Stop claiming Heimdall as a consumer
+
+### Fixed
+
+- **The package description and README listed Heimdall as a user of this
+  library. It never was.** Heimdall imports gungnir zero times: it inlines
+  its own HMAC transport so it can ship as a CLI and a Pyodide page from
+  one file with no runtime dependencies, a decision taken in the
+  2026-06-03 family audit and recorded in its module docstring.
+
+  This mattered more than a wrong line in a README. It is why a fix landing
+  here can be believed to have reached all three feeders when it reached
+  two, which is exactly how `check_deliberate_skip` sat unported while
+  Heimdall carried the bug it fixes. Heimdall's own docs were corrected
+  after the audit; this side never was.
+
+  The README now separates consumers from family members that are not
+  consumers, and says why Heimdall is in the second group and what that
+  costs: transport fixes landing here must be ported to Heimdall by hand.
+
+  Heimdall can still use the dependency-free parts of this library, and as
+  of its v0.9.0 it uses `holds` through a lazy import that never runs in
+  the browser.
+
 ## [0.4.0] - 2026-09-21 - Read back what the server imported
 
 ### Added
