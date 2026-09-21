@@ -10,33 +10,73 @@ version guard exists to catch, arriving from the packaging side instead.
 pyproject now reads the version from the package attribute. This test holds
 that arrangement in place: any reintroduced literal in pyproject fails here
 rather than six weeks later on someone's feeder.
+
+No tomllib. It is stdlib only from 3.11, and this library supports 3.10 and
+is CI-tested on it. The first version of this file imported tomllib and
+broke the 3.10 leg for two hours. The facts asserted here are textual, so
+they are read with a small section-aware scan instead -- and where tomllib
+IS available, the scan is checked against it, so the fallback cannot quietly
+drift from the real parser.
 """
 from __future__ import annotations
 
 import pathlib
-import tomllib
+import re
 
 import gungnir
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+PYPROJECT = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
 
-def _pyproject() -> dict:
-    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+def _section(name: str) -> list[str]:
+    """The lines inside a [table], excluding the header."""
+    out: list[str] = []
+    in_it = False
+    for line in PYPROJECT.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            in_it = stripped == f"[{name}]"
+            continue
+        if in_it:
+            out.append(stripped)
+    return out
 
 
 def test_pyproject_does_not_hardcode_a_version():
-    project = _pyproject()["project"]
-    assert "version" not in project, (
-        "pyproject.toml must not carry its own version literal; it drifted "
-        "from gungnir/__version__.py once already")
-    assert "version" in project.get("dynamic", []), (
+    literals = [ln for ln in _section("project")
+                if re.match(r"^version\s*=", ln)]
+    assert not literals, (
+        f"pyproject.toml carries its own version literal ({literals}); it "
+        f"drifted from gungnir/__version__.py once already")
+
+
+def test_the_version_is_declared_dynamic():
+    dynamic = [ln for ln in _section("project")
+               if re.match(r"^dynamic\s*=", ln)]
+    assert dynamic and "version" in dynamic[0], (
         "the version must be declared dynamic so it comes from the package")
 
 
 def test_pyproject_points_at_the_package_attribute():
-    dynamic = _pyproject()["tool"]["setuptools"]["dynamic"]
-    assert dynamic["version"] == {"attr": "gungnir.__version__.__version__"}
+    lines = _section("tool.setuptools.dynamic")
+    assert any("gungnir.__version__.__version__" in ln for ln in lines), (
+        f"[tool.setuptools.dynamic] must read the version from the package "
+        f"attribute, got {lines}")
+
+
+def test_the_scan_agrees_with_a_real_toml_parser():
+    # Only runs where tomllib exists (3.11+). It stops the hand-rolled scan
+    # above from drifting into agreeing with nothing.
+    try:
+        import tomllib
+    except ModuleNotFoundError:
+        return
+    parsed = tomllib.loads(PYPROJECT)
+    assert "version" not in parsed["project"]
+    assert "version" in parsed["project"].get("dynamic", [])
+    assert parsed["tool"]["setuptools"]["dynamic"]["version"] == {
+        "attr": "gungnir.__version__.__version__"}
 
 
 def test_the_installed_metadata_matches_the_code():

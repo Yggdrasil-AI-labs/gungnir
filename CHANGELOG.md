@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-09-21 - Fix the 3.10 CI leg
+
+### Fixed
+
+- **`tests/test_version_is_single_sourced.py` imported `tomllib`**, which is
+  stdlib only from 3.11. This library supports 3.10 and CI tests it, so the
+  3.10 leg of every run since 0.2.1 failed on a `ModuleNotFoundError` while
+  3.11 and 3.12 passed.
+
+  Nobody noticed for two hours because the consumer repos' CI was being
+  watched and this one's was not, which is a poor excuse when the whole
+  point of the matrix is to catch exactly this.
+
+  The facts asserted are textual, so they are read with a small
+  section-aware scan that works on every supported version. Where tomllib
+  IS available, the scan is now checked against it, so the hand-rolled
+  reader cannot drift into agreeing with nothing.
+
 ## [0.4.1] - 2026-09-21 - Stop claiming Heimdall as a consumer
 
 ### Fixed
