@@ -146,12 +146,17 @@ class TestDurability:
             holds._path("t").write_text(bad)
             assert holds.load("t") == {}
 
-    def test_write_is_atomic_and_leaves_no_temp_file(self, isolated_config,
-                                                     monkeypatch):
+    def test_write_is_atomic_and_leaves_no_temp_file(self, isolated_config):
         # Asserting only that no temp file survives passes against a direct
         # write too, so watch where the bytes actually land: a reader must
         # never be able to observe a half-written map.
+        #
+        # Scoped with mock.patch rather than monkeypatch: the monkeypatch
+        # fixture is one shared instance per test, so undoing the spy here
+        # would also undo the config-dir isolation the autouse fixture set.
         from pathlib import Path as _P
+        from unittest import mock
+
         written = []
         real = _P.write_text
 
@@ -159,9 +164,8 @@ class TestDurability:
             written.append(_P(self).name)
             return real(self, *a, **kw)
 
-        monkeypatch.setattr(_P, "write_text", spy)
-        holds.save("t", {"ABC123": time.time() + 999})
-        monkeypatch.undo()
+        with mock.patch.object(_P, "write_text", spy):
+            holds.save("t", {"ABC123": time.time() + 999})
 
         assert written and written[0].endswith(".tmp"), (
             f"expected the write to land on a temp path, got {written}")

@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-21 - One source of truth for the version
+
+### Fixed
+
+- **`pyproject.toml` carried its own version literal and had already drifted
+  from the package.** 0.2.0 shipped with code saying 0.2.0 and distribution
+  metadata saying 0.1.6, so `pip install --upgrade` was a no-op: pip already
+  had "0.1.6" and the new tarball also called itself 0.1.6. The installed
+  code changed underneath a version number that did not, which is exactly
+  what Muninn's gungnir version guard exists to catch, arriving from the
+  packaging side instead.
+
+  The version is now declared dynamic and read from
+  `gungnir.__version__.__version__`. A test fails if a literal is ever put
+  back, and another compares the installed distribution metadata against the
+  code.
+
+  **Pin v0.2.1, not v0.2.0.** The v0.2.0 tag's sdist understates its own
+  version and anything resolving it by metadata will misbehave.
+
 ## [0.2.0] - 2026-09-21 - Shared already-sent holds
 
 ### Added
