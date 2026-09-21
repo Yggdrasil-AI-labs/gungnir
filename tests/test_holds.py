@@ -117,6 +117,52 @@ class TestHoldLifecycle:
         assert holds.load("tool-b") == {}
 
 
+class TestKeyLevelApi:
+    """For callers whose records are not dicts.
+
+    wigle-to-wdgwars uploads WiGLE CSV rows and its identity is the MAC and
+    SSID together. Normalisation is the caller's job at this level: a MAC is
+    case-insensitive, an SSID is not, and only the caller knows which half
+    is which.
+    """
+
+    def test_a_key_is_held_until_it_expires(self):
+        now = time.time()
+        holds.record_keys("t", ["AA:BB:CC|coffeeshop"], now)
+        state = holds.load("t")
+        assert holds.is_held("AA:BB:CC|coffeeshop", state, now)
+        assert not holds.is_held("AA:BB:CC|coffeeshop", state,
+                                 now + holds.SENT_TTL + 1)
+
+    def test_an_unknown_key_is_not_held(self):
+        now = time.time()
+        holds.record_keys("t", ["AA:BB:CC|one"], now)
+        assert not holds.is_held("AA:BB:CC|two", holds.load("t"), now)
+
+    def test_a_none_key_is_never_held(self):
+        # Same contract as an unreadable identity: always upload.
+        assert not holds.is_held(None, {"x": time.time() + 999}, time.time())
+
+    def test_case_is_the_callers_business(self):
+        # Deliberately NOT folded here. Two SSIDs differing only in case are
+        # two different networks, and folding them would suppress one.
+        now = time.time()
+        holds.record_keys("t", ["AA:BB:CC|CoffeeShop"], now)
+        state = holds.load("t")
+        assert not holds.is_held("AA:BB:CC|coffeeshop", state, now)
+
+    def test_empty_keys_are_skipped_not_stored(self):
+        now = time.time()
+        holds.record_keys("t", ["", None, "AA:BB|x"], now)
+        assert list(holds.load("t")) == ["AA:BB|x"]
+
+    def test_record_sent_is_the_same_mechanism(self):
+        # The dict path must not drift from the key path.
+        now = time.time()
+        holds.record_sent("t", [ac("ABC123")], "aircraft", now)
+        assert holds.is_held("ABC123", holds.load("t"), now)
+
+
 class TestTtlChoice:
     def test_zero_imported_earns_the_confirmed_hold(self):
         assert holds.ttl_for(0) == holds.CONFIRMED_TTL

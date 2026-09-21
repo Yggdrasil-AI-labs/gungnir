@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-21 - A key-level entry point for holds
+
+### Added
+
+- **`holds.is_held(key, state, now)` and `holds.record_keys(tool, keys, ...)`**,
+  for callers whose records are not dicts. wigle-to-wdgwars uploads WiGLE
+  CSV rows, and a network's identity on WDGWars is the MAC and SSID
+  together rather than one field, so it builds its own keys.
+
+  Normalisation is deliberately the caller's job at this level. A MAC is
+  case-insensitive and an SSID is not, and only the caller knows which half
+  of a composite key is which: folding the whole thing would silently
+  suppress one of two networks whose names differ only in case.
+
+  `record_sent` is now a thin wrapper over `record_keys`, so the dict path
+  and the key path cannot drift apart.
+
 ## [0.2.1] - 2026-09-21 - One source of truth for the version
 
 ### Fixed

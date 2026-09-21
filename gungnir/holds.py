@@ -117,35 +117,47 @@ def prune(state: dict[str, float], now: float) -> dict[str, float]:
     return {k: exp for k, exp in state.items() if exp > now}
 
 
+def is_held(key: str | None, state: dict[str, float], now: float) -> bool:
+    """Whether ``key`` is still held. A key of None is never held.
+
+    The key-level entry point, for callers whose records are not dicts.
+    wigle-to-wdgwars uploads WiGLE CSV rows and its identity is the MAC and
+    SSID together, not one field, so it builds its own keys and comes in
+    here. Normalisation is the caller's business at this level: a MAC is
+    case-insensitive but an SSID is not, and only the caller knows which
+    half is which.
+    """
+    if key is None:
+        return False
+    expires = state.get(key)
+    return expires is not None and expires > now
+
+
 def unheld(records: list[dict], slot: str, state: dict[str, float],
            now: float) -> list[dict]:
     """The records whose hold has expired or was never set."""
-    out = []
-    for r in records:
-        key = identity(r, slot)
-        if key is None:
-            out.append(r)
-            continue
-        expires = state.get(key)
-        if expires is None or expires <= now:
-            out.append(r)
-    return out
+    return [r for r in records
+            if not is_held(identity(r, slot), state, now)]
 
 
-def record_sent(tool: str, records: list[dict], slot: str, now: float,
-                ttl: float = SENT_TTL) -> None:
-    """Hold every record in ``records`` until ``now + ttl``.
+def record_keys(tool: str, keys, now: float, ttl: float = SENT_TTL) -> None:
+    """Hold every key in ``keys`` until ``now + ttl``.
 
     An existing longer hold wins: a confirmed record turning up in a later
     mixed payload must not have its day-long hold cut back to an hour.
     """
     state = prune(load(tool), now)
     expires = now + ttl
-    for r in records:
-        key = identity(r, slot)
+    for key in keys:
         if key:
             state[key] = max(state.get(key, 0.0), expires)
     save(tool, state)
+
+
+def record_sent(tool: str, records: list[dict], slot: str, now: float,
+                ttl: float = SENT_TTL) -> None:
+    """Hold every record in ``records`` until ``now + ttl``."""
+    record_keys(tool, (identity(r, slot) for r in records), now, ttl)
 
 
 def ttl_for(imported: int | None) -> float:
