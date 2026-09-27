@@ -23,21 +23,35 @@ sys.path.insert(0, str(ROOT))
 # Import gungnir
 from gungnir.envelope import build_envelope, build_payload  # noqa: E402
 
-# Try to import muninn - skip cleanly if Muninn isn't on disk where we
-# expect (e.g. in a CI environment that only checks out gungnir).
-MUNINN_PATH = Path.home() / "Documents" / "GitHub" / "HiroAlleyCat" / "adsb-to-wdgwars"
-if MUNINN_PATH.exists():
+# Try to import muninn - skip cleanly if Muninn isn't on disk (e.g. a CI
+# job that only checks out gungnir). Looked for, in order: $MUNINN_PATH, a
+# sibling checkout next to this repo (the ~/code layout), then the old
+# ~/Documents/GitHub/HiroAlleyCat path. Only the last used to be checked,
+# so after the repos moved to ~/code this test skipped everywhere without
+# anyone noticing.
+import os  # noqa: E402
+
+_CANDIDATES = [Path(p) for p in (os.environ.get("MUNINN_PATH"),) if p] + [
+    ROOT.parent / "adsb-to-wdgwars",
+    Path.home() / "Documents" / "GitHub" / "HiroAlleyCat" / "adsb-to-wdgwars",
+]
+MUNINN_PATH = next((c for c in _CANDIDATES if (c / "muninn.py").exists()),
+                   None)
+HAVE_MUNINN = False
+if MUNINN_PATH is not None:
     sys.path.insert(0, str(MUNINN_PATH))
     try:
         import muninn  # noqa: E402
         HAVE_MUNINN = True
     except Exception:
         HAVE_MUNINN = False
-else:
-    HAVE_MUNINN = False
+_SKIP_WHY = ("Muninn source not found; looked in: "
+             + ", ".join(str(c) for c in _CANDIDATES)
+             if MUNINN_PATH is None else
+             f"muninn.py at {MUNINN_PATH} failed to import")
 
 
-@unittest.skipUnless(HAVE_MUNINN, "Muninn source not available at expected path")
+@unittest.skipUnless(HAVE_MUNINN, _SKIP_WHY)
 class MuninnParityTests(unittest.TestCase):
     """Bytewise comparison against muninn.py's upload() envelope-build.
 
