@@ -340,3 +340,27 @@ class TestScopes:
 
     def test_reset_with_nothing_there_is_quiet(self):
         assert holds.reset("never-used") == []
+
+
+class TestFileMode:
+    @pytest.mark.skipif(__import__("os").name == "nt",
+                        reason="POSIX modes; Windows uses the profile ACL")
+    def test_holds_files_are_owner_only(self):
+        import os
+        import stat
+        scope = holds.scoped("t", "k")
+        holds.record_keys(scope, ["AA:BB|net|2026-09-27 10:00:00"], time.time())
+        mode = stat.S_IMODE(os.stat(holds.path_for(scope)).st_mode)
+        assert mode == 0o600, oct(mode)
+
+    @pytest.mark.skipif(__import__("os").name == "nt",
+                        reason="POSIX modes; Windows uses the profile ACL")
+    def test_an_existing_world_readable_file_is_tightened_on_save(self):
+        import os
+        import stat
+        path = holds.path_for("t")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}")
+        os.chmod(path, 0o644)
+        holds.save("t", {"X": time.time() + 99})
+        assert stat.S_IMODE(os.stat(path).st_mode) == 0o600

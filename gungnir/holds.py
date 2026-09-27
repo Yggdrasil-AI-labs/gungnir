@@ -152,6 +152,14 @@ def save(tool: str, state: dict[str, float]) -> None:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+        # Owner-only, like the key file beside it (0.6.1). A wigle holds
+        # file is 30 days of MAC + SSID + FirstSeen, a timeline of which
+        # networks the operator was near and when, and the default umask
+        # made it world-readable. Created 0600 BEFORE anything is written
+        # so there is no window, and the rename carries the mode over.
+        fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.close(fd)
+        os.chmod(tmp, 0o600)  # a leftover tmp from a crash keeps its mode
         tmp.write_text(json.dumps(state, indent=2))
         os.replace(tmp, path)
     except OSError as e:

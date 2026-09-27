@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-27 - Holds files are owner-only
+
+### Fixed
+
+- **Holds files were world-readable** under the default umask (0644 on
+  Linux), while the API key beside them is created 0600. A wigle holds
+  file is 30 days of MAC + SSID + FirstSeen: a timeline of which networks
+  the operator was near and when. Files are now created 0600 before
+  anything is written, and an existing file is tightened on its next save.
+
 ## [0.6.0] - 2026-09-27 - Per-key holds and a reset
 
 ### Added
