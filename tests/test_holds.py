@@ -299,3 +299,44 @@ class TestDurability:
         holds._path("t").parent.mkdir(parents=True, exist_ok=True)
         holds._path("t").write_text(json.dumps({"ABC123": now}))
         assert holds.prune(holds.load("t"), now) == {}
+
+
+class TestScopes:
+    """Per-key holds (0.6.0): one account's holds must never suppress
+    another's uploads."""
+
+    def test_different_keys_do_not_share_holds(self):
+        now = time.time()
+        a = holds.scoped("t", "key-for-account-a")
+        b = holds.scoped("t", "key-for-account-b")
+        assert a != b
+        holds.record_sent(a, [ac("ABC123")], "aircraft", now,
+                          ttl=holds.ACCEPTED_TTL)
+        assert holds.unheld([ac("ABC123")], "aircraft",
+                            holds.load(a), now) == []
+        assert len(holds.unheld([ac("ABC123")], "aircraft",
+                                holds.load(b), now)) == 1
+
+    def test_the_key_never_reaches_the_file_name(self):
+        scope = holds.scoped("t", "super-secret-key")
+        assert "super-secret-key" not in str(holds.path_for(scope))
+        assert holds.scoped("t", " super-secret-key ") == scope
+
+    def test_no_key_is_the_unscoped_file(self):
+        assert holds.scoped("t", None) == "t"
+        assert holds.scoped("t", "  ") == "t"
+        assert holds.path_for("t").name == "holds.json"
+
+    def test_reset_removes_every_scope_and_the_legacy_file(self):
+        now = time.time()
+        for scope in ("t", holds.scoped("t", "k1"), holds.scoped("t", "k2")):
+            holds.record_keys(scope, ["ABC123"], now)
+        holds.save("other", {"X": now + 99})
+        removed = holds.reset("t")
+        assert len(removed) == 3
+        for scope in ("t", holds.scoped("t", "k1"), holds.scoped("t", "k2")):
+            assert holds.load(scope) == {}
+        assert holds.load("other") != {}, "reset must not touch other tools"
+
+    def test_reset_with_nothing_there_is_quiet(self):
+        assert holds.reset("never-used") == []

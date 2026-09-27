@@ -37,12 +37,22 @@ what Muninn uses from 2.6.0: the day hold still let the regulars (the same
 airline tails every day) come back as a sync with nothing new in it, and an
 all-or-nothing gate on a 140-aircraft snapshot almost never fired at all.
 
+Holds are kept **per API key** (0.6.0). A holds file belongs to one
+WDGWars account: what account A was sent says nothing about what account B
+has, and with a 30-day hold, switching a rig to another key would otherwise
+starve the new account for a month. `scoped(tool, api_key)` returns the
+name to pass as `tool` everywhere below; the key itself never touches disk,
+only a truncated SHA-256 of it in the file name. `reset(tool)` deletes every
+holds file a tool has, for every key, which is what a feeder's
+--reset-holds flag calls.
+
 Every failure path here errs toward uploading. An unreadable state file, an
 unwritable config dir, a record whose identity we cannot read: all of them
 cost one redundant upload and none of them suppress one.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -66,8 +76,42 @@ IDENTITY_FIELDS = {
 }
 
 
+def scoped(tool: str, api_key: str | None) -> str:
+    """The holds scope for ``tool`` under ``api_key``: pass it as ``tool``
+    to load, save and record_*. An empty key gives the unscoped name, the
+    pre-0.6.0 file, so a caller that has no key yet still works."""
+    key = (api_key or "").strip()
+    if not key:
+        return tool
+    return f"{tool}@{hashlib.sha256(key.encode('utf-8')).hexdigest()[:12]}"
+
+
 def _path(tool: str) -> Path:
-    return config_dir(tool) / "holds.json"
+    base, _, fp = tool.partition("@")
+    return config_dir(base) / (f"holds-{fp}.json" if fp else "holds.json")
+
+
+def path_for(tool: str) -> Path:
+    """Where the holds for ``tool`` (plain or scoped) live, for messages."""
+    return _path(tool)
+
+
+def reset(tool: str) -> list[Path]:
+    """Delete every holds file for ``tool``, under every key. Returns the
+    paths removed. A file that cannot be removed is logged and skipped:
+    reset is the operator's escape hatch and must report what it did rather
+    than stop halfway."""
+    d = config_dir(tool.partition("@")[0])
+    removed = []
+    if not d.is_dir():
+        return removed
+    for f in sorted(d.glob("holds*.json")) + sorted(d.glob("holds*.json.*.tmp")):
+        try:
+            f.unlink()
+            removed.append(f)
+        except OSError as e:
+            log.warning("could not remove %s (%s)", f, e)
+    return removed
 
 
 def identity(record: dict, slot: str) -> str | None:

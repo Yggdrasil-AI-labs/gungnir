@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-27 - Per-key holds and a reset
+
+### Added
+
+- **`holds.scoped(tool, api_key)`**: holds are kept per API key. With a
+  30-day hold, a rig switched to another account's key would otherwise
+  have that account starved for a month by the first account's holds. The
+  file name carries a truncated SHA-256 of the key, never the key. An empty
+  key gives the unscoped name, the pre-0.6.0 file.
+- **`holds.reset(tool)`** deletes every holds file for a tool, every key
+  and the legacy file included, and returns what it removed. Backs each
+  feeder's `--reset-holds`, the escape hatch for state that has gone wrong.
+- **`holds.path_for(scope)`** for telling the operator where the file is.
+
 ## [0.5.0] - 2026-09-26 - A month-long hold for delta senders
 
 ### Added
