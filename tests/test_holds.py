@@ -88,6 +88,22 @@ class TestHoldLifecycle:
         assert state == {}
         assert len(holds.unheld([ac("ABC123")], "aircraft", state, later)) == 1
 
+    def test_accepted_hold_lasts_a_month_then_expires(self):
+        # The daily regulars are the reason for this length: a day hold let
+        # the same tails come back every morning as a sync carrying nothing
+        # new. It must still expire, never be permanent.
+        assert holds.ACCEPTED_TTL == 30 * 86400
+        now = time.time()
+        holds.record_sent("t", [ac("ABC123")], "aircraft", now,
+                          ttl=holds.ACCEPTED_TTL)
+        next_week = now + 7 * 86400
+        state = holds.prune(holds.load("t"), next_week)
+        assert holds.unheld([ac("ABC123")], "aircraft", state, next_week) == []
+
+        past_month = now + holds.ACCEPTED_TTL + 1
+        state = holds.prune(holds.load("t"), past_month)
+        assert state == {}
+
     def test_confirmed_hold_outlives_the_short_one(self):
         now = time.time()
         holds.record_sent("t", [ac("ABC123")], "aircraft", now,

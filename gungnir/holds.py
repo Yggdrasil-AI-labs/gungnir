@@ -29,6 +29,14 @@ Measured on a live ADS-B receiver 2026-09-21: aircraft turn over completely
 inside half an hour, so the hour-long hold almost never suppresses a daytime
 cycle on its own. The confirmed hold is what actually answers the warning.
 
+`ACCEPTED_TTL` (30 days) is for a caller that sends only the unheld records
+rather than the whole snapshot. After any accepted upload every record in it
+is on file, whether it already was or was just imported, so the "which ones
+were new" question stops mattering and one long hold covers the lot. This is
+what Muninn uses from 2.6.0: the day hold still let the regulars (the same
+airline tails every day) come back as a sync with nothing new in it, and an
+all-or-nothing gate on a 140-aircraft snapshot almost never fired at all.
+
 Every failure path here errs toward uploading. An unreadable state file, an
 unwritable config dir, a record whose identity we cannot read: all of them
 cost one redundant upload and none of them suppress one.
@@ -47,6 +55,7 @@ log = logging.getLogger(__name__)
 
 SENT_TTL = 3600
 CONFIRMED_TTL = 86400
+ACCEPTED_TTL = 30 * 86400
 
 # Which field identifies a record, per upload slot. These match the schemas
 # the server validates, so a change here means the wire shape changed too.

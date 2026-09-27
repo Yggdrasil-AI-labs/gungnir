@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-26 - A month-long hold for delta senders
+
+### Added
+
+- **`holds.ACCEPTED_TTL`** (30 days), for callers that send only the unheld
+  records instead of the whole snapshot. After an accepted upload every
+  record in it is on file, imported or already there, so one long hold fits
+  all of them. Muninn 2.6.0 is the first consumer: on a busy ADS-B receiver
+  the all-or-nothing gate almost never fired, and the day hold still let
+  the daily regulars come back as syncs with nothing new in them.
+  `SENT_TTL` and `CONFIRMED_TTL` are unchanged for callers still sending
+  full payloads.
+
 ## [0.4.2] - 2026-09-21 - Fix the 3.10 CI leg
 
 ### Fixed
