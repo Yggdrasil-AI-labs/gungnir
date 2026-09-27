@@ -138,6 +138,30 @@ def load(tool: str) -> dict[str, float]:
         return {}
 
 
+# Windows refuses to rename over a file another process has open, and a
+# watch daemon plus a periodic task (both creatable by the --schedule
+# installers) will sometimes be reading while the other saves. Measured
+# 2026-09-27 with four writers on one file: about 60% of saves failed with
+# WinError 5 on 0.6.0 and 0.6.1 alike. The file was never corrupted, but each
+# failure cost a full re-upload on the next cycle. POSIX rename never fails
+# this way, so the retry only ever runs where it is needed.
+_REPLACE_ATTEMPTS = 6
+_REPLACE_FIRST_WAIT = 0.02  # doubles each time: at most about 0.6 s in total
+
+
+def _replace_with_retry(src: Path, dst: Path) -> None:
+    wait = _REPLACE_FIRST_WAIT
+    for attempt in range(_REPLACE_ATTEMPTS):
+        try:
+            os.replace(src, dst)
+            return
+        except PermissionError:
+            if attempt == _REPLACE_ATTEMPTS - 1:
+                raise
+            time.sleep(wait)
+            wait *= 2
+
+
 def save(tool: str, state: dict[str, float]) -> None:
     """Write the map atomically.
 
@@ -161,7 +185,7 @@ def save(tool: str, state: dict[str, float]) -> None:
         os.close(fd)
         os.chmod(tmp, 0o600)  # a leftover tmp from a crash keeps its mode
         tmp.write_text(json.dumps(state, indent=2))
-        os.replace(tmp, path)
+        _replace_with_retry(tmp, path)
     except OSError as e:
         log.warning("could not persist holds to %s (%s); every cycle will "
                     "upload in full", path, e)

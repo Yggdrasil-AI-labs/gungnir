@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-09-27 - Retry a save blocked by another process
+
+### Fixed
+
+- **Windows could not save holds while another feeder process had the file
+  open.** Windows refuses to rename over an open file, and a watch daemon
+  plus a periodic task (both creatable by the `--schedule` installers)
+  collide. With four writers on one file about 60% of saves failed with
+  WinError 5. The file was never corrupted, but each failure cost a full
+  re-upload on the next cycle. The rename is now retried up to six times
+  over about 0.6 s. Only "access denied" is retried; any other error gives up
+  at once as before. POSIX systems were never affected.
+
 ## [0.6.1] - 2026-09-27 - Holds files are owner-only
 
 ### Fixed

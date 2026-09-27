@@ -364,3 +364,51 @@ class TestFileMode:
         os.chmod(path, 0o644)
         holds.save("t", {"X": time.time() + 99})
         assert stat.S_IMODE(os.stat(path).st_mode) == 0o600
+
+
+class TestReplaceRetry:
+    """0.6.2: a rename blocked by another process (WinError 5 on Windows)
+    is retried before the save gives up."""
+
+    def test_a_briefly_blocked_rename_still_saves(self, monkeypatch):
+        import os as _os
+        real = _os.replace
+        calls = {"n": 0}
+
+        def flaky(src, dst):
+            calls["n"] += 1
+            if calls["n"] <= 2:
+                raise PermissionError(5, "Access is denied")
+            return real(src, dst)
+
+        monkeypatch.setattr(holds.os, "replace", flaky)
+        monkeypatch.setattr(holds.time, "sleep", lambda s: None)
+        holds.save("t", {"ABC123": time.time() + 99})
+        assert calls["n"] == 3
+        assert "ABC123" in holds.load("t")
+
+    def test_a_rename_that_never_succeeds_gives_up_cleanly(self, monkeypatch):
+        def always(src, dst):
+            raise PermissionError(5, "Access is denied")
+
+        monkeypatch.setattr(holds.os, "replace", always)
+        slept = []
+        monkeypatch.setattr(holds.time, "sleep", slept.append)
+        holds.save("t", {"ABC123": time.time() + 99})  # must not raise
+        assert holds.load("t") == {}, "nothing saved means upload in full"
+        assert len(slept) == holds._REPLACE_ATTEMPTS - 1
+        assert sum(slept) < 1.0, "a blocked save must not stall a cycle"
+        leftovers = list(holds.path_for("t").parent.glob("*.tmp"))
+        assert not leftovers, "the temp file must not be left behind"
+
+    def test_other_errors_are_not_retried(self, monkeypatch):
+        calls = {"n": 0}
+
+        def broken(src, dst):
+            calls["n"] += 1
+            raise OSError(28, "No space left on device")
+
+        monkeypatch.setattr(holds.os, "replace", broken)
+        monkeypatch.setattr(holds.time, "sleep", lambda s: None)
+        holds.save("t", {"ABC123": time.time() + 99})
+        assert calls["n"] == 1
